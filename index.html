@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Screamous Inventory</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      body { background-color: #121212; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+      .container-app { max-width: 450px; margin: auto; padding: 25px; background-color: #1e1e1e; border-radius: 20px; box-shadow: 0px 10px 30px rgba(0,0,0,0.5); min-height: 85vh; }
+      .menu-btn { height: 75px; font-size: 1.1rem; font-weight: 700; border-radius: 15px; margin-bottom: 12px; border: none; transition: transform 0.2s; width: 100%; }
+      .menu-btn:active { transform: scale(0.98); }
+      .logo-title { font-weight: 900; color: #ffc107; letter-spacing: 3px; font-size: 1.8rem; }
+    </style>
+  </head>
+  <body>
+    <div class="container container-app">
+      <div class="text-center">
+        <h2 class="logo-title mb-1">SCREAMOUS</h2>
+        <p class="text-secondary mb-4 small">Warehouse Management System</p>
+        
+        <div class="d-grid gap-2">
+          <button class="btn btn-primary menu-btn" onclick="pindah('packing.html')">📦 Modul Packing</button>
+          <button class="btn btn-warning menu-btn text-dark" onclick="pindah('unpack.html')">📤 Modul Unpack (Bongkar)</button>
+          <button class="btn btn-light menu-btn text-dark shadow-sm" onclick="pindah('display.html')">📺 Display TV</button>
+          <button class="btn btn-secondary menu-btn text-white shadow-sm" onclick="pindah('admin.html')">📄 Riwayat / Log Aktivitas</button>
+          <button class="btn btn-info menu-btn text-dark" onclick="pindah('generator.html')">🖨️ Cetak Label QR</button>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      // Fungsi sederhana untuk pindah halaman tanpa google.script.run
+      function pindah(halaman) {
+        window.location.href = halaman;
+      }
+    </script>
+  </body>
+</html>
