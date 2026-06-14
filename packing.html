@@ -27,7 +27,7 @@
       <div class="mb-4">
         <label class="form-label fw-bold text-secondary">ID Kemasan (KRG / DUS)</label>
         <div class="input-group">
-          <input type="text" id="id_kemasan" class="form-control form-control-lg border-2 border-warning fw-bold text-uppercase" placeholder="Scan QR..." required>
+          <input type="text" id="id_kemasan" class="form-control form-control-lg border-2 border-warning fw-bold text-uppercase" placeholder="Scan QR..." onchange="verifikasiQRAwal(this.value)" required>
           <button class="btn btn-warning fw-bold px-3 text-dark" type="button" id="btnKamera" onclick="toggleKamera()">📷 Scan</button>
         </div>
       </div>
@@ -86,33 +86,48 @@
   </div>
 
   <script>
-    // URL API RAHASIA ANDA
     const API_URL = "https://script.google.com/macros/s/AKfycbxuage-LdjXo4s0mmdbttqSDVldZBCJRngMD-JZ5FgCSn1iO-_TzR_hTHuiTDnRUqNZ/exec";
     
     let daftarArtikel = []; let daftarKategori = []; let payloadSementara = {};
     let html5QrCode; let kameraAktif = false;
 
-    // Fungsi Mengirim Request ke Google Sheets API
     async function tembakAPI(action, payload = null) {
       const response = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" }, // Hack anti-blokir CORS
+        method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({ action: action, payload: payload })
       });
       return await response.json();
     }
 
-    // Memuat Data Dropdown Saat Aplikasi Dibuka
+    // FUNGSI BARU: Validasi seketika saat Scanner menangkap QR
+    async function verifikasiQRAwal(qr) {
+      if(!qr) return;
+      let btn = document.getElementById('btnSimpan');
+      let originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = "Memeriksa QR...";
+
+      try {
+        // Memanfaatkan rute cekIsiKarung. Jika hasilnya sukses, berarti karung INI MASIH AKTIF!
+        const res = await tembakAPI("cekIsiKarung", qr);
+        if(res.sukses) {
+          alert("⚠️ DITOLAK!\nQR Code " + qr + " masih AKTIF digunakan di lokasi: " + res.data.lokasi + "\n\nSilakan bongkar (UNPACK) karung tersebut terlebih dahulu jika karung fisik ini sudah kosong dan ingin dipakai ulang.");
+          document.getElementById('id_kemasan').value = ""; // Hapus input agar tidak bisa lanjut
+        }
+      } catch (err) { console.log(err); }
+
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+
     window.onload = async function() {
       try {
         const res = await tembakAPI("getInitialData");
         if(res.sukses) {
-          // Isi Lokasi
           const selLokasi = document.getElementById('lokasi');
           selLokasi.innerHTML = '<option value="">-- Pilih Lokasi --</option>';
           res.data.lokasi.forEach(lok => selLokasi.add(new Option(lok, lok)));
           
-          // Isi Artikel
           daftarArtikel = res.data.artikel;
           let setKat = new Set();
           daftarArtikel.forEach(art => { if(art.kategori) setKat.add(art.kategori); });
@@ -122,12 +137,9 @@
           selKategori.innerHTML = '<option value="">-- Pilih Kategori --</option>';
           daftarKategori.forEach(kat => selKategori.add(new Option(kat, kat)));
         }
-      } catch (err) {
-        alert("Gagal memuat data dari server. Pastikan internet Anda aktif.");
-      }
+      } catch (err) { alert("Gagal memuat data dari server."); }
     };
 
-    // Mesin Kamera Live Scanner
     function toggleKamera() {
       const readerDiv = document.getElementById('reader');
       const btnKamera = document.getElementById('btnKamera');
@@ -138,16 +150,18 @@
         
         html5QrCode = new Html5Qrcode("reader");
         html5QrCode.start(
-          { facingMode: "environment" }, // Paksa pakai kamera belakang
+          { facingMode: "environment" },
           { fps: 15, qrbox: { width: 250, height: 250 } },
           (decodedText) => {
-            // Jika berhasil baca QR
-            document.getElementById('id_kemasan').value = decodedText.toUpperCase();
-            // Mainkan suara Beep (Opsional)
+            let qr = decodedText.toUpperCase();
+            document.getElementById('id_kemasan').value = qr;
             let audio = new Audio('https://www.soundjay.com/button/beep-07.wav'); audio.play().catch(e=>{});
-            toggleKamera(); // Tutup kamera otomatis
+            toggleKamera(); 
+            
+            // Panggil Validasi Seketika
+            verifikasiQRAwal(qr);
           },
-          (errorMessage) => { /* Abaikan error tiap frame kosong */ }
+          (errorMessage) => { }
         ).catch(err => alert("Gagal mengakses kamera: " + err));
         kameraAktif = true;
       } else {
@@ -159,7 +173,6 @@
       }
     }
 
-    // Logika UI (Sama seperti versi sebelumnya)
     function filterModel(el) {
       const baris = el.closest('.baris-artikel'); const elModel = baris.querySelector('.input-model');
       const areaSize = baris.querySelector('.area-size');
@@ -221,11 +234,14 @@
 
       try {
         const res = await tembakAPI("simpanPacking", payloadSementara);
-        alert(res.pesan);
-        if(res.sukses) window.location.reload(); // Refresh bersih jika sukses
-      } catch (err) {
-        alert("Gagal menghubungi server Google Sheets.");
-      }
+        if(res.sukses) {
+          alert(res.pesan);
+          window.location.reload(); 
+        } else {
+          // Tangkap pesan GAGAL dari Validasi Backend
+          alert(res.pesan);
+        }
+      } catch (err) { alert("Gagal menghubungi server Google Sheets."); }
       
       document.getElementById('btnSimpan').style.display = 'block';
       document.getElementById('statusProses').style.display = 'none';
