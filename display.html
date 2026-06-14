@@ -88,22 +88,29 @@
           body: JSON.stringify({ action: "getDashboardData", payload: null })
         });
         
+        // Peringatan jika Google memblokir karena limit / error server
+        if (!response.ok) {
+          throw new Error("Server Google Sibuk / Error");
+        }
+
         const res = await response.json();
         
         if(res.sukses) {
           dataTerakhir = res.data;
+          document.getElementById('area-dashboard').innerHTML = ""; // Bersihkan loading
           renderDashboard(res.data);
           let now = new Date();
           document.getElementById('waktuUpdate').innerHTML = `🔄 Sinkronisasi: ${("0"+now.getHours()).slice(-2)}:${("0"+now.getMinutes()).slice(-2)}:${("0"+now.getSeconds()).slice(-2)}`;
         } else {
-          document.getElementById('waktuUpdate').innerHTML = `<span class="text-danger">Koneksi API Gagal</span>`;
+          document.getElementById('waktuUpdate').innerHTML = `<span class="text-danger">Gagal: ${res.pesan}</span>`;
         }
       } catch (err) {
-        document.getElementById('waktuUpdate').innerHTML = `<span class="text-danger">Koneksi Putus</span>`;
+        console.error("Detail Error:", err);
+        document.getElementById('waktuUpdate').innerHTML = `<span class="text-danger">Koneksi Putus (Refresh)</span>`;
       }
     }
 
-    // Render HTML TV View (Diadaptasi dari kode asli Anda)
+    // Render HTML TV View (Sesuai kode asli)
     function renderDashboard(data) {
       const area = document.getElementById('area-dashboard');
       if(data && data.errorBackend) {
@@ -112,8 +119,6 @@
       }
 
       let html = '';
-      
-      // RENDER MODE ARTIKEL (Default)
       if (currentMode === "artikel") {
         html += `
           <div class="row text-center mb-4 g-3">
@@ -137,9 +142,7 @@
           </tr>`;
         });
         html += `</tbody></table>`;
-      } 
-      // RENDER MODE LOKASI
-      else {
+      } else {
         html += `<div class="row g-4">`;
         Object.keys(data.dataLokasi).sort().forEach(lok => {
           let item = data.dataLokasi[lok];
@@ -162,7 +165,9 @@
 
     // Mulai Eksekusi
     muatDashboard();
-    setInterval(muatDashboard, 5000); // Tarik data setiap 5 detik
+    
+    // UBAH INTERVAL MENJADI 15 DETIK AGAR TIDAK DIBLOKIR GOOGLE (15000 ms)
+    setInterval(muatDashboard, 15000);
   </script>
 </body>
 </html>
